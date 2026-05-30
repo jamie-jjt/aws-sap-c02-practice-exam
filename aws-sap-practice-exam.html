@@ -153,6 +153,229 @@ function quickAsk(prompt) {
 
 function generateAssistantResponse(msg) {
   const lower = msg.toLowerCase();
+  const q = examState.questions && examState.questions[examState.current];
+
+  // === CONTEXTUAL: Explain why specific option is correct/wrong ===
+  if (q && (lower.includes('why') || lower.includes('explain'))) {
+    const optMatch = lower.match(/\b([abcd])\b/i);
+    if (optMatch && (lower.includes('option') || lower.includes('wrong') || lower.includes('correct') || lower.includes('answer'))) {
+      const opt = optMatch[1].toUpperCase();
+      const ca = q.multiSelect ? q.correctAnswer : [q.correctAnswer];
+      const isCorrectOpt = ca.includes(opt);
+      if (isCorrectOpt) return `\u2705 <b>Option ${opt} is CORRECT:</b><br>${q.explanations.correct}<br><br>\uD83D\uDCA1 <b>Exam tip:</b> The correct answer uses the purpose-built, managed AWS mechanism requiring least operational effort.`;
+      const wrongKey = 'wrong' + opt;
+      if (q.explanations[wrongKey]) return `\u274C <b>Option ${opt} is WRONG:</b><br>${q.explanations[wrongKey]}<br><br>\u2705 <b>Correct (${ca.join(', ')}):</b> ${q.explanations.correct}`;
+    }
+    if (lower.includes('this question') || lower.includes('this') || lower.includes('explain')) {
+      const ca = q.multiSelect ? q.correctAnswer : [q.correctAnswer];
+      const wrongOpts = ['A','B','C','D'].filter(o => !ca.includes(o));
+      const wrongDetails = wrongOpts.map(o => `<br>\u274C <b>${o}:</b> ${q.explanations['wrong'+o] || 'N/A'}`).join('');
+      return `\uD83D\uDCD6 <b>Full Explanation \u2014 ${q.topic}:</b><br><br>\u2705 <b>Correct (${ca.join(', ')}):</b> ${q.explanations.correct}${wrongDetails}`;
+    }
+  }
+
+  // === COMPARE SERVICES ===
+  if (lower.includes('vs') || lower.includes('versus') || lower.includes('difference') || lower.includes('compare')) {
+    if (lower.includes('kinesis') && lower.includes('sqs')) return "\u2696\uFE0F <b>Kinesis vs SQS:</b><br><br><b>Kinesis:</b> Real-time, ordered per shard, multiple consumers (EFO), replay (up to 365 days), you manage consumers<br><b>SQS:</b> Near-real-time, FIFO for ordering, single consumer per message, no replay, fully managed<br><br><b>Choose Kinesis:</b> multiple consumers, ordering, replay, real-time analytics<br><b>Choose SQS:</b> decoupling, exactly-once (FIFO), simple queue pattern";
+    if (lower.includes('glue') && lower.includes('emr')) return "\u2696\uFE0F <b>Glue vs EMR:</b><br><br><b>Glue:</b> Serverless Spark, pay per DPU-second, built-in catalog/crawlers/bookmarks, DynamicFrames<br><b>EMR:</b> Full Hadoop ecosystem, you manage clusters, custom libraries, Spot instances<br><br><b>Rule:</b> Glue for standard ETL. EMR for full ecosystem control or custom ML frameworks.";
+    if (lower.includes('athena') && lower.includes('redshift')) return "\u2696\uFE0F <b>Athena vs Redshift:</b><br><br><b>Athena:</b> Serverless SQL on S3, pay per TB scanned, no infra, best for ad-hoc queries<br><b>Redshift:</b> MPP warehouse, complex analytics, repeated queries, dashboards<br><b>Spectrum:</b> Query S3 FROM Redshift (join warehouse + lake data)";
+    if (lower.includes('flink') && lower.includes('glue')) return "\u2696\uFE0F <b>Flink vs Glue Streaming:</b><br><br><b>Managed Flink:</b> Sub-second latency, complex event processing (CEP), session windows, event-time with watermarks, SQL support<br><b>Glue Streaming:</b> Micro-batch (seconds), Spark Structured Streaming, simpler transforms, integrates with Glue ecosystem<br><br><b>Choose Flink:</b> sub-second latency, CEP, watermarks<br><b>Choose Glue:</b> simpler transforms, existing Glue pipeline";
+    if (lower.includes('aurora') && lower.includes('rds')) return "\u2696\uFE0F <b>Aurora vs RDS:</b><br><br><b>Aurora:</b> 5x throughput, 6-way replication, up to 15 replicas, <30s failover, auto-scaling to 128 TB, Global Database<br><b>RDS:</b> Standard engines, up to 5 replicas, 60-120s failover, manual storage scaling<br><br><b>Choose Aurora:</b> high throughput, fast failover, many replicas, cross-region DR";
+  }
+
+  // === TOPIC-SPECIFIC KNOWLEDGE (expanded) ===
+  if (lower.includes('kinesis') && (lower.includes('shard') || lower.includes('throughput'))) return "\uD83D\uDCCC <b>Kinesis Shards:</b><br>\u2022 Write: 1 MB/s OR 1,000 records/s per shard<br>\u2022 Read (standard): 2 MB/s shared across ALL consumers<br>\u2022 Read (EFO): 2 MB/s DEDICATED per consumer<br>\u2022 GetRecords: 5 calls/sec/shard<br>\u2022 Partition key \u2192 MD5 hash \u2192 shard<br>\u2022 UpdateShardCount to resize<br><br><b>Exam Traps:</b><br>\u2022 Write throttle = add shards (not EFO)<br>\u2022 Read throttle = add EFO (not shards)<br>\u2022 Hot shard = same partition key<br>\u2022 PutRecords: check FailedRecordCount, retry failed only";
+  if (lower.includes('firehose') || (lower.includes('kinesis') && lower.includes('delivery'))) return "\uD83D\uDCCC <b>Kinesis Data Firehose:</b><br>\u2022 Buffering: Size 1-128 MB, Interval 60-900s (whichever first)<br>\u2022 Destinations: S3, Redshift (via S3\u2192COPY), OpenSearch, Splunk, HTTP<br>\u2022 Lambda transform: synchronous, failed \u2192 S3 backup prefix<br>\u2022 Dynamic Partitioning: JQ for S3 prefix routing<br>\u2022 Format Conversion: JSON\u2192Parquet/ORC via Glue Catalog<br><br><b>Critical:</b> Redshift = ALWAYS S3 first. Sub-second Redshift = use Streaming Ingestion.";
+  if (lower.includes('lake formation') || lower.includes('lf-tag')) return "\uD83D\uDCCC <b>Lake Formation:</b><br>\u2022 ON TOP of IAM (both must allow)<br>\u2022 Column-level: SELECT on specific columns<br>\u2022 Row-level: Data filters with expressions<br>\u2022 LF-Tags: Attribute-based access at scale<br>\u2022 Hybrid Access Mode: coexist with IAM during migration<br>\u2022 Cross-account: Share via AWS RAM<br><br><b>Exam Trap:</b> Full IAM + missing LF permission = DENIED.";
+  if (lower.includes('kms') || lower.includes('encrypt') || lower.includes('cmk')) return "\uD83D\uDCCC <b>AWS KMS:</b><br>\u2022 Envelope: CMK encrypts DEK, DEK encrypts data. CMK never leaves KMS.<br>\u2022 Types: AWS Owned (no control), AWS Managed (3yr rotation), Customer Managed (full control)<br>\u2022 Rotation: New material, old retained. Key ID unchanged.<br>\u2022 Multi-Region: Same material across regions. Encrypt/decrypt cross-region.<br>\u2022 Grants: Temporary permissions. Create\u2192use\u2192retire.<br>\u2022 Deletion: 7-30 day wait. Data PERMANENTLY inaccessible after.<br><br><b>Disable key = immediately revoke access. Delete = permanent loss.</b>";
+  if (lower.includes('redshift') && (lower.includes('spectrum') || lower.includes('external'))) return "\uD83D\uDCCC <b>Redshift Spectrum:</b><br>\u2022 Query S3 without loading into Redshift<br>\u2022 External schema \u2192 Glue Data Catalog \u2192 External table<br>\u2022 Pushes predicates to S3 (reduces scanned data)<br>\u2022 Billed per TB scanned<br><br><b>vs Data Sharing:</b> Spectrum=S3 data. Sharing=another Redshift cluster.<br><b>vs Streaming Ingestion:</b> Spectrum=existing S3. Streaming=real-time from Kinesis/MSK.";
+  if (lower.includes('redshift') && !lower.includes('spectrum') && !lower.includes('external')) return "\uD83D\uDCCC <b>Amazon Redshift:</b><br>\u2022 Distribution: AUTO, EVEN, KEY (join col), ALL (small tables)<br>\u2022 Sort Keys: Compound (leading col) vs Interleaved (equal weight)<br>\u2022 Concurrency Scaling: auto-adds clusters during peak (1hr free/day)<br>\u2022 Serverless: auto-scales, pay per RPU-hour<br>\u2022 VACUUM: reclaim deleted rows + re-sort<br>\u2022 COPY: bulk load from S3 (parallel). UNLOAD: export to S3.<br>\u2022 Materialized Views: pre-computed, refresh on schedule";
+  if (lower.includes('dynamodb') && (lower.includes('capacity') || lower.includes('wcu') || lower.includes('rcu'))) return "\uD83D\uDCCC <b>DynamoDB Capacity:</b><br>\u2022 1 WCU = 1 write/sec \u22641 KB (round UP)<br>\u2022 1 RCU = 1 strong read/sec \u22644 KB (round UP)<br>\u2022 0.5 RCU = 1 eventual read/sec \u22644 KB<br>\u2022 Transactional: 2x capacity<br><br><b>Examples:</b> 3KB write=3 WCU. 5KB strong read=2 RCU. 8KB eventual read=1 RCU.<br><br><b>On-Demand:</b> No planning, any spike, 6.5x more expensive per request.<br><b>Provisioned+AutoScaling:</b> Cheaper for predictable workloads.";
+  if (lower.includes('dynamodb') && !lower.includes('capacity') && !lower.includes('wcu')) return "\uD83D\uDCCC <b>DynamoDB:</b><br>\u2022 GSI: Different PK, up to 20, created anytime, own capacity<br>\u2022 LSI: Same PK different SK, max 5, created at table creation only<br>\u2022 TTL: Auto-delete at epoch timestamp, no cost, ~48hr window<br>\u2022 Streams: Item changes, 24hr retention, triggers Lambda<br>\u2022 DAX: In-memory cache, microsecond reads<br>\u2022 PITR: Any second within 35 days<br>\u2022 Global Tables: Multi-region active-active, last-writer-wins<br>\u2022 Transactions: Up to 100 ops, ACID, 2x cost";
+  if (lower.includes('vpc endpoint') || lower.includes('privatelink')) return "\uD83D\uDCCC <b>VPC Endpoints:</b><br><br><b>Gateway (FREE):</b> S3 + DynamoDB only. Route table entry. Endpoint policy.<br><b>Interface (PrivateLink):</b> All other services. Hourly+per-GB. ENI in subnet. Security group + endpoint policy.<br><br><b>Data Perimeter:</b> Gateway endpoint + bucket policy aws:SourceVpce = VPC-only access.<br><br><b>Remember:</b> Kinesis, Glue, KMS, SQS = Interface (costs money). S3, DynamoDB = Gateway (free).";
+  if (lower.includes('step function') || lower.includes('state machine')) return "\uD83D\uDCCC <b>Step Functions:</b><br>\u2022 Standard: exactly-once, 1 year max, per-transition pricing<br>\u2022 Express: at-least-once, 5 min max, per-execution pricing<br>\u2022 Retry: ErrorEquals + MaxAttempts + BackoffRate<br>\u2022 Catch: route to error handling state<br>\u2022 Parallel: concurrent branches, wait for all<br>\u2022 Map: iterate arrays, MaxConcurrency<br>\u2022 Task Token: pause for external callback (human approval)<br><br><b>Retry vs Catch:</b> Retry=same state again. Catch=different state (error path).";
+  if (lower.includes('dms') || (lower.includes('migration') && lower.includes('database'))) return "\uD83D\uDCCC <b>AWS DMS:</b><br>\u2022 Full Load: one-time snapshot<br>\u2022 CDC Only: ongoing from log position<br>\u2022 Full Load + CDC: snapshot then seamless ongoing replication<br>\u2022 SCT: Schema Conversion Tool (heterogeneous: Oracle\u2192PostgreSQL)<br>\u2022 S3 target: cdcMaxBatchInterval + cdcMinFileSize control file size<br><br><b>Exam Trap:</b> 'Minimize downtime' = Full Load + CDC (replicate while running, cutover when caught up).";
+  if (lower.includes('msk') || lower.includes('kafka')) return "\uD83D\uDCCC <b>Amazon MSK:</b><br>\u2022 Managed Kafka. MSK Connect for connectors (S3 Sink, etc.)<br>\u2022 MSK Replicator: cross-region topic replication<br>\u2022 Auth: mTLS, SASL/SCRAM, IAM<br>\u2022 Scaling: max consumer parallelism = number of partitions<br><br><b>Exam Trap:</b> Consumer lag? Increase PARTITIONS (not broker size).";
+  if (lower.includes('lambda') && (lower.includes('limit') || lower.includes('timeout') || lower.includes('cold') || lower.includes('concurrency'))) return "\uD83D\uDCCC <b>Lambda:</b><br>\u2022 Max timeout: 15 min (HARD limit)<br>\u2022 Max memory: 10,240 MB<br>\u2022 Parallelization Factor: 1-10 per shard<br>\u2022 Batch Window: 0-300s<br>\u2022 Provisioned Concurrency: eliminates cold starts<br>\u2022 Reserved Concurrency: guarantees capacity<br><br><b>VPC Lambda:</b> Needs NAT Gateway for internet. No VPC = internet but no VPC resources.<br><b>Exam Trap:</b> >15 min processing? Lambda is WRONG. Use Glue/ECS/Step Functions.";
+  if (lower.includes('athena')) return "\uD83D\uDCCC <b>Athena Optimization:</b><br>\u2022 Parquet/ORC: columnar, 70-90% cost reduction vs CSV<br>\u2022 Partitioning: filter on partition columns for pruning<br>\u2022 CTAS: materialize expensive queries<br>\u2022 Result Reuse: cache identical queries (7 days)<br>\u2022 Workgroups: per-query scan limits, team isolation<br>\u2022 Federated Query: Lambda connectors for DynamoDB/RDS<br>\u2022 Iceberg: ACID, time travel, schema evolution on S3<br><br><b>Trap:</b> Partition pruning only on PARTITION columns. Data column filter = full scan.";
+  if (lower.includes('s3') && (lower.includes('lifecycle') || lower.includes('storage') || lower.includes('class') || lower.includes('tier'))) return "\uD83D\uDCCC <b>S3 Storage:</b><br>\u2022 Standard \u2192 Standard-IA (30d) \u2192 Glacier Instant (90d) \u2192 Glacier Flexible (90d) \u2192 Deep Archive (180d)<br>\u2022 Intelligent-Tiering: auto-moves, no retrieval fees<br>\u2022 Object Lock Compliance: true WORM, no one can delete<br>\u2022 Versioning: preserves all versions, recover overwrites<br>\u2022 Multipart Upload: required >5 GB, recommended >100 MB<br>\u2022 Access Points: per-team endpoints with own policies";
+  if (lower.includes('eventbridge') || lower.includes('event bridge')) return "\uD83D\uDCCC <b>EventBridge:</b><br>\u2022 Event Bus: serverless router, content-based filtering<br>\u2022 Pipes: Source\u2192Filter\u2192Enrich\u2192Target (point-to-point)<br>\u2022 Scheduler: cron/rate, time zones, flexible windows<br>\u2022 Archive & Replay: store events, replay after bug fix<br>\u2022 Schema Registry: auto-discover, code bindings<br>\u2022 DLQ: SQS on rule targets for failed delivery<br><br><b>Trap:</b> EventBridge Schema Registry \u2260 Glue Schema Registry (different services).";
+  if (lower.includes('cloudwatch')) return "\uD83D\uDCCC <b>CloudWatch:</b><br>\u2022 Metrics + Alarms (static threshold or anomaly detection)<br>\u2022 Anomaly Detection: ML-based expected behavior band<br>\u2022 Metric Math: combine metrics (error_rate = errors/total)<br>\u2022 Contributor Insights: top-N analysis<br>\u2022 Synthetics: canary scripts for proactive monitoring<br>\u2022 EMF: publish metrics via structured JSON logs<br>\u2022 Logs Insights: interactive log queries<br>\u2022 Log retention: 1 day to 10 years (set on Log Group)";
+  if (lower.includes('data quality') || lower.includes('dqdl')) return "\uD83D\uDCCC <b>Glue Data Quality (DQDL):</b><br>\u2022 Completeness 'col' >= 0.95 (\u226595% non-null)<br>\u2022 IsComplete 'col' (100% non-null)<br>\u2022 Uniqueness 'col' >= 0.99<br>\u2022 ColumnValues 'age' between 0 and 150<br>\u2022 RowCount > 0<br><br>Actions: FAIL JOB on threshold breach. Metrics auto-publish to CloudWatch.";
+  if (lower.includes('macie') || (lower.includes('pii') && lower.includes('discover'))) return "\uD83D\uDCCC <b>Macie:</b> ML+pattern matching for PII in S3. Custom Data Identifiers (regex). Discovery Jobs. Findings\u2192EventBridge\u2192Lambda. NOT a redaction tool (use Glue Sensitive Data Detection or S3 Object Lambda for redaction).";
+  if (lower.includes('iam') && (lower.includes('cross') || lower.includes('account'))) return "\uD83D\uDCCC <b>Cross-Account:</b><br>\u2022 Same account: IAM OR resource policy can allow (union)<br>\u2022 Cross account: BOTH must allow<br>\u2022 Pattern: Account B role + trust policy \u2192 Account A assumes via STS<br><br><b>Trap:</b> S3 cross-account needs BOTH bucket policy AND IAM policy.";
+  if (lower.includes('iam') && (lower.includes('deny') || lower.includes('evaluation'))) return "\uD83D\uDCCC <b>IAM Evaluation:</b><br>1. Explicit Deny \u2192 DENY (always wins)<br>2. SCP check (Organizations)<br>3. Permission Boundary check<br>4. Identity + Resource policy \u2192 Allow or implicit Deny<br><br><b>Explicit Deny ALWAYS overrides any Allow.</b> No exceptions.";
+
+  // === EXAM STRATEGIES ===
+  if (lower.includes('exam') && (lower.includes('trap') || lower.includes('trick') || lower.includes('strategy') || lower.includes('tip'))) return "\uD83D\uDCCC <b>Exam Strategies:</b><br>1. 'Most operationally efficient' = managed service > custom code<br>2. 'Least privilege' = specific ARNs, not wildcards<br>3. 'Cost-effective' = right-size first, then pricing tiers<br>4. 'Minimize downtime' = blue/green, CDC, streaming<br>5. Lambda 15min limit, Firehose always S3 for Redshift<br>6. Cross-account = both sides must allow<br>7. 'Custom code on EC2' is almost always wrong<br>8. Gateway Endpoints = ONLY S3 + DynamoDB (free)";
+
+  // === MEMORY TRICKS ===
+  if (lower.includes('memory') || lower.includes('mnemonic') || lower.includes('remember')) {
+    if (q && q.topic && q.topic.includes('Kinesis')) return "\uD83E\uDDE0 <b>Kinesis:</b> 1-2 rule (1 MB/s write, 2 MB/s read). Streams=fishing rod (you catch). Firehose=fire hose (auto-delivers).";
+    if (q && q.topic && q.topic.includes('DynamoDB')) return "\uD83E\uDDE0 <b>DynamoDB:</b> WCU=1KB, RCU=4KB. GSI=Go anywhere. LSI=Locked at creation.";
+    if (q && q.topic && q.topic.includes('Glue')) return "\uD83E\uDDE0 <b>Glue:</b> Workers double: G.1X=16GB, G.2X=32GB, G.4X=64GB, G.8X=128GB. Flex=34% cheaper.";
+    return "\uD83E\uDDE0 <b>Key Numbers:</b><br>\u2022 Kinesis: 1 MB/s write, 2 MB/s read per shard<br>\u2022 Lambda: 15 min max<br>\u2022 DynamoDB: 1KB/WCU, 4KB/RCU, PITR=35 days<br>\u2022 Firehose: 60-900s buffer interval<br>\u2022 Gateway Endpoints: S3+DynamoDB only (free)<br>\u2022 KDS retention: 24hr default, 365 max<br>\u2022 Glue Flex: ~34% savings";
+  }
+
+  // === FALLBACK ===
+  if (q) return `I can help with <b>${q.topic}</b>. Try:<br>\u2022 "Why is option A wrong?"<br>\u2022 "Explain this question"<br>\u2022 "Compare Kinesis vs SQS"<br>\u2022 "Exam traps for this topic"<br>\u2022 "Memory trick"<br><br>Or ask about: Kinesis, Glue, Redshift, DynamoDB, S3, Lambda, Step Functions, KMS, IAM, VPC endpoints, EventBridge, Athena, DMS, MSK, Lake Formation, Macie, CloudWatch...`;
+  return "\uD83D\uDC4B I'm your study assistant. Try:<br>\u2022 'Why is option B wrong?'<br>\u2022 'Compare Glue vs EMR'<br>\u2022 'Tell me about DynamoDB capacity'<br>\u2022 'Exam traps'<br>\u2022 'Memory trick'<br>\u2022 Any AWS topic: Kinesis, Glue, Redshift, S3, Lambda, KMS, IAM...";
+}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>AWS SAP-C02 — Solutions Architect Professional Practice Exam</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+// @ts-nocheck
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        aws: { orange: '#FF9900', dark: '#232F3E', navy: '#1B2838' },
+        surface: { 1: '#0f172a', 2: '#1e293b', 3: '#334155' }
+      }
+    }
+  }
+}
+</script>
+<style>
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+.fade-in { animation: fadeIn .25s ease-out; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.animate-pulse-slow { animation: pulse 2s infinite; }
+.progress-fill { transition: width .4s cubic-bezier(.4,0,.2,1); }
+.option-btn { transition: all .15s ease; }
+.option-btn:active { transform: scale(.98); }
+.option-correct { background: #065f46 !important; border-color: #10b981 !important; color: #d1fae5 !important; }
+.option-wrong { background: #7f1d1d !important; border-color: #ef4444 !important; color: #fecaca !important; }
+.option-missed { background: #064e3b !important; border-color: #34d399 !important; }
+</style>
+</head>
+<body class="bg-surface-1 text-gray-100 min-h-screen flex flex-col">
+
+<!-- STICKY NAV -->
+<nav class="bg-surface-2 border-b border-gray-800 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-12 sm:h-14">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-aws-orange rounded-md flex items-center justify-center font-black text-white text-xs">S</div>
+      <span class="font-bold text-white text-xs sm:text-sm hidden sm:block">SAP-C02 Mastery</span>
+    </div>
+    <div class="flex items-center gap-0.5 sm:gap-1">
+      <button onclick="showPage('exam')" id="tab-exam" class="tab-btn px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent">
+        Exam
+      </button>
+      <button onclick="showPage('review')" id="tab-review" class="tab-btn px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent">
+        Review
+      </button>
+      <button onclick="showPage('stats')" id="tab-stats" class="tab-btn px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent">
+        Stats
+      </button>
+      <button onclick="toggleAssistant()" id="btn-assistant" class="ml-2 sm:ml-4 w-8 h-8 bg-aws-orange rounded-full flex items-center justify-center text-white text-sm font-bold hover:scale-110 transition-transform" title="Study Assistant">
+        ?
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN LAYOUT: Content + Assistant Panel -->
+<div class="flex flex-1 overflow-hidden relative">
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 overflow-y-auto" id="main-content">
+    <div id="page-exam" class="page max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
+    <div id="page-review" class="page hidden max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
+    <div id="page-stats" class="page hidden max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
+  </main>
+
+  <!-- STUDY ASSISTANT PANEL -->
+  <aside id="assistant-panel" class="hidden w-full sm:w-96 bg-surface-2 border-l border-gray-800 flex flex-col fixed sm:relative inset-0 sm:inset-auto z-40">
+    <div class="flex items-center justify-between p-3 border-b border-gray-700">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 bg-aws-orange rounded-full flex items-center justify-center text-xs font-bold text-white">K</div>
+        <span class="font-bold text-sm text-white">Study Assistant</span>
+      </div>
+      <button onclick="toggleAssistant()" class="text-gray-400 hover:text-white text-lg">&times;</button>
+    </div>
+    <div id="assistant-messages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm"></div>
+    <div class="p-3 border-t border-gray-700">
+      <div class="flex gap-2">
+        <input id="assistant-input" type="text" placeholder="Ask about any AWS architecture topic..."
+          class="flex-1 bg-surface-1 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-aws-orange"
+          onkeydown="if(event.key==='Enter')sendAssistantMsg()"/>
+        <button onclick="sendAssistantMsg()" class="bg-aws-orange hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors">Send</button>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1">
+        <button onclick="quickAsk('Explain this topic in detail')" class="text-xs bg-surface-3 text-gray-300 px-2 py-1 rounded hover:bg-gray-600">Explain topic</button>
+        <button onclick="quickAsk('What are common exam traps for this?')" class="text-xs bg-surface-3 text-gray-300 px-2 py-1 rounded hover:bg-gray-600">Exam traps</button>
+        <button onclick="quickAsk('Give me a memory trick')" class="text-xs bg-surface-3 text-gray-300 px-2 py-1 rounded hover:bg-gray-600">Memory trick</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// @ts-nocheck
+
+// ============================================================
+// NAVIGATION & ASSISTANT
+// ============================================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-aws-orange','text-white'); b.classList.add('border-transparent','text-gray-400'); });
+  document.getElementById('page-' + name).classList.remove('hidden');
+  const tab = document.getElementById('tab-' + name);
+  tab.classList.add('border-aws-orange','text-white');
+  tab.classList.remove('border-transparent','text-gray-400');
+}
+
+let assistantOpen = false;
+function toggleAssistant() {
+  assistantOpen = !assistantOpen;
+  const panel = document.getElementById('assistant-panel');
+  panel.classList.toggle('hidden', !assistantOpen);
+  if (assistantOpen && document.getElementById('assistant-messages').children.length === 0) {
+    addAssistantMsg('assistant', "Hi! I'm your SAP-C02 Study Assistant. Ask me anything about AWS architecture — services, architectures, exam strategies, or explanations for any question you're reviewing.");
+  }
+}
+
+function addAssistantMsg(role, text) {
+  const container = document.getElementById('assistant-messages');
+  const div = document.createElement('div');
+  div.className = role === 'user'
+    ? 'ml-8 bg-aws-orange bg-opacity-20 border border-orange-800 rounded-xl p-3 text-gray-200'
+    : 'mr-4 bg-surface-3 rounded-xl p-3 text-gray-200';
+  div.innerHTML = `<div class="text-xs font-bold mb-1 ${role==='user'?'text-orange-300':'text-blue-300'}">${role==='user'?'You':'Assistant'}</div><div class="text-sm leading-relaxed">${text}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendAssistantMsg() {
+  const input = document.getElementById('assistant-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addAssistantMsg('user', msg);
+  // Generate contextual response
+  setTimeout(() => {
+    const response = generateAssistantResponse(msg);
+    addAssistantMsg('assistant', response);
+  }, 400);
+}
+
+function quickAsk(prompt) {
+  const q = examState.questions[examState.current];
+  const context = q ? `[Context: ${q.domain} — ${q.topic}] ${prompt}` : prompt;
+  document.getElementById('assistant-input').value = context;
+  sendAssistantMsg();
+}
+
+function generateAssistantResponse(msg) {
+  const lower = msg.toLowerCase();
   // Topic-specific knowledge base responses
   if (lower.includes('kinesis') && lower.includes('shard')) return "📌 <b>Kinesis Shards Key Facts:</b><br>• Write: 1 MB/s OR 1,000 records/s per shard<br>• Read (standard): 2 MB/s shared across all consumers<br>• Read (EFO): 2 MB/s dedicated per consumer<br>• Use UpdateShardCount API to resize<br>• Partition key determines shard routing (MD5 hash)<br><br><b>Exam Trap:</b> ProvisionedThroughputExceededException on WRITE = need more shards. On READ = need Enhanced Fan-Out or fewer consumers.";
   if (lower.includes('glue') && lower.includes('bookmark')) return "📌 <b>Glue Job Bookmarks:</b><br>• Track processed S3 files by path + ETag + last-modified<br>• States: enabled, disabled, paused<br>• Reset via ResetJobBookmark API (reprocesses from specific run)<br>• Only work with S3 and JDBC sources<br>• Common issue: deployment resets bookmark state → full reprocessing<br><br><b>Exam Trap:</b> Bookmarks don't work with DynamoDB sources. Use DynamoDB Streams for incremental DynamoDB processing.";
