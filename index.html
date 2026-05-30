@@ -70,7 +70,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   </main>
 
   <!-- STUDY ASSISTANT PANEL -->
-  <aside id="assistant-panel" class="hidden w-full sm:w-96 bg-surface-2 border-l border-gray-800 flex flex-col fixed sm:relative inset-0 sm:inset-auto z-40">
+  <aside id="assistant-panel" class="hidden w-full sm:w-96 h-full max-h-screen bg-surface-2 border-l border-gray-800 flex flex-col fixed sm:relative inset-0 sm:inset-auto z-40 overflow-hidden">
     <div class="flex items-center justify-between p-3 border-b border-gray-700">
       <div class="flex items-center gap-2">
         <div class="w-6 h-6 bg-aws-orange rounded-full flex items-center justify-center text-xs font-bold text-white">K</div>
@@ -115,6 +115,7 @@ function toggleAssistant() {
   assistantOpen = !assistantOpen;
   const panel = document.getElementById('assistant-panel');
   panel.classList.toggle('hidden', !assistantOpen);
+  updateQuickActions();
   if (assistantOpen && document.getElementById('assistant-messages').children.length === 0) {
     addAssistantMsg('assistant', "Hi! I'm your SAP-C02 Study Assistant. Ask me anything about AWS architecture — services, architectures, exam strategies, or explanations for any question you're reviewing.");
   }
@@ -293,7 +294,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   </main>
 
   <!-- STUDY ASSISTANT PANEL -->
-  <aside id="assistant-panel" class="hidden w-full sm:w-96 bg-surface-2 border-l border-gray-800 flex flex-col fixed sm:relative inset-0 sm:inset-auto z-40">
+  <aside id="assistant-panel" class="hidden w-full sm:w-96 h-full max-h-screen bg-surface-2 border-l border-gray-800 flex flex-col fixed sm:relative inset-0 sm:inset-auto z-40 overflow-hidden">
     <div class="flex items-center justify-between p-3 border-b border-gray-700">
       <div class="flex items-center gap-2">
         <div class="w-6 h-6 bg-aws-orange rounded-full flex items-center justify-center text-xs font-bold text-white">K</div>
@@ -338,6 +339,7 @@ function toggleAssistant() {
   assistantOpen = !assistantOpen;
   const panel = document.getElementById('assistant-panel');
   panel.classList.toggle('hidden', !assistantOpen);
+  updateQuickActions();
   if (assistantOpen && document.getElementById('assistant-messages').children.length === 0) {
     addAssistantMsg('assistant', "Hi! I'm your SAP-C02 Study Assistant. Ask me anything about AWS architecture — services, architectures, exam strategies, or explanations for any question you're reviewing.");
   }
@@ -524,6 +526,7 @@ function renderLanding() {
 }
 
 function renderQuestion() {
+  setTimeout(updateQuickActions, 50);
   const q = examState.questions[examState.current];
   const total = examState.questions.length;
   const pct = Math.round((examState.current / total) * 100);
@@ -663,6 +666,7 @@ function submitAns() {
       ${isLast ? '📊 View Results' : 'Next Question →'}
     </button>`;
   document.getElementById('next-box').classList.remove('hidden');
+  updateQuickActions();
 }
 
 function nextQ() {
