@@ -53,6 +53,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       <button onclick="showPage('stats')" id="tab-stats" class="tab-btn px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent">
         Stats
       </button>
+      <button onclick="showPage('docs')" id="tab-docs" class="tab-btn px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white transition-colors border-b-2 border-transparent">
+        Docs
+      </button>
       <button onclick="toggleAssistant()" id="btn-assistant" class="ml-2 sm:ml-4 w-8 h-8 bg-aws-orange rounded-full flex items-center justify-center text-white text-sm font-bold hover:scale-110 transition-transform" title="Study Assistant">
         ?
       </button>
@@ -67,6 +70,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <div id="page-exam" class="page max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
     <div id="page-review" class="page hidden max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
     <div id="page-stats" class="page hidden max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
+    <div id="page-docs" class="page hidden max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8"></div>
   </main>
 
   <!-- STUDY ASSISTANT PANEL -->
@@ -268,6 +272,248 @@ function renderStats() {
       ${weakTopics}
     </div>
     <button onclick="if(confirm('Reset all progress?')){userStats={totalAnswered:0,totalCorrect:0,domainScores:{'Domain 1':[0,0],'Domain 2':[0,0],'Domain 3':[0,0],'Domain 4':[0,0]},weakTopics:{},examHistory:[]};saveStats();renderStats();}" class="text-xs text-gray-500 hover:text-red-400 transition-colors">Reset Progress</button>
+  </div>`;
+}
+
+// ============================================================
+// DOCS PAGE — Free SAP-C02 Resources
+// ============================================================
+function buildDocs() {
+  const el = document.getElementById('page-docs');
+  if (!el) return;
+
+  const link = (url, title, note, badge) =>
+    `<a href="${url}" target="_blank" rel="noopener noreferrer"
+      class="flex items-start gap-3 bg-surface-2 border border-gray-700/60 rounded-xl p-3 hover:border-aws-orange/60 hover:bg-surface-3 transition-all group cursor-pointer">
+      <span class="flex-shrink-0 mt-0.5 text-xs font-bold px-1.5 py-0.5 rounded ${badge}">${badge.includes('orange') ? 'FREE' : 'FREE'}</span>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-2">
+          <span class="text-white text-sm font-medium group-hover:text-aws-orange transition-colors leading-snug">${title}</span>
+          <svg class="flex-shrink-0 w-3.5 h-3.5 text-gray-600 group-hover:text-aws-orange mt-0.5 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </div>
+        <p class="text-gray-400 text-xs mt-0.5 leading-relaxed">${note}</p>
+      </div>
+    </a>`;
+
+  const section = (title, icon, color, border, items) =>
+    `<div class="mb-8">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-xl">${icon}</span>
+        <h2 class="font-bold text-base ${color}">${title}</h2>
+        <div class="flex-1 h-px bg-gray-800"></div>
+        <span class="text-xs text-gray-500">${items.length} resources</span>
+      </div>
+      <div class="space-y-2">${items.join('')}</div>
+    </div>`;
+
+  const FREE = 'bg-green-900/50 text-green-300 border border-green-700/50';
+
+  el.innerHTML = `<div class="fade-in pb-12">
+
+    <!-- HEADER -->
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-lg">📖</div>
+      <h1 class="text-2xl font-black text-white mb-1">SAP-C02 Free Study Resources</h1>
+      <p class="text-gray-400 text-sm max-w-2xl mx-auto">Every link below is 100% free — no AWS subscription or paid course needed. These are the exact pages AWS uses to write the exam questions.</p>
+      <div class="mt-3 flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+        <span class="bg-green-900/30 text-green-400 border border-green-800/50 px-2 py-1 rounded-full">✓ No login required</span>
+        <span class="bg-green-900/30 text-green-400 border border-green-800/50 px-2 py-1 rounded-full">✓ No credit card</span>
+        <span class="bg-green-900/30 text-green-400 border border-green-800/50 px-2 py-1 rounded-full">✓ Always up to date</span>
+      </div>
+    </div>
+
+    <!-- START HERE -->
+    ${section('Start Here — Exam Blueprint & Strategy', '🎯', 'text-aws-orange', 'border-orange-700', [
+      link('https://d1.awsstatic.com/training-and-certification/docs-sa-pro/AWS-Certified-Solutions-Architect-Professional_Exam-Guide.pdf',
+        'SAP-C02 Official Exam Guide (PDF)',
+        'The blueprint. Lists every domain, task statement, and in-scope service. Read this first and return to it often. Highlights exactly what AWS tests.', FREE),
+      link('https://aws.amazon.com/certification/certified-solutions-architect-professional/',
+        'SAP-C02 Certification Page',
+        'Official landing page with sample questions, exam details, and links to all free prep resources from AWS.', FREE),
+      link('https://d1.awsstatic.com/training-and-certification/docs-sa-pro/AWS-Certified-Solutions-Architect-Professional_Sample-Questions.pdf',
+        'Official Sample Questions (PDF)',
+        '10 real exam-style questions with answers and explanations. Shows exactly how AWS phrases multi-scenario architectural questions.', FREE),
+      link('https://aws.amazon.com/whitepapers/',
+        'AWS Whitepapers & Guides',
+        'The single most valuable free resource. SAP-C02 heavily tests whitepaper content especially on DR strategies, security, and Well-Architected.', FREE),
+    ])}
+
+    <!-- WELL-ARCHITECTED -->
+    ${section('Well-Architected Framework — High Priority', '🏗️', 'text-blue-400', 'border-blue-700', [
+      link('https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html',
+        'AWS Well-Architected Framework',
+        'Core reading. Six pillars: Operational Excellence, Security, Reliability, Performance Efficiency, Cost Optimization, Sustainability. The SAP exam tests these principles constantly.', FREE),
+      link('https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html',
+        'Reliability Pillar Whitepaper',
+        'Deep dive into HA patterns, multi-AZ/multi-region design, chaos engineering, fault isolation. Multiple SAP questions per exam come from this pillar.', FREE),
+      link('https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html',
+        'Security Pillar Whitepaper',
+        'Identity management, detection, infrastructure protection, data protection. Covers IAM, SCPs, GuardDuty, Security Hub patterns tested on SAP.', FREE),
+      link('https://docs.aws.amazon.com/wellarchitected/latest/cost-optimization-pillar/welcome.html',
+        'Cost Optimization Pillar Whitepaper',
+        'Savings Plans, Reserved Instances, Spot strategy, right-sizing. SAP tests cost-effective architecture selection heavily.', FREE),
+      link('https://docs.aws.amazon.com/wellarchitected/latest/analytics-lens/analytics-lens.html',
+        'Analytics Lens (Well-Architected)',
+        'Data lake architecture, streaming vs batch, catalog governance. Bridges Domain 1 (Org Complexity) with analytics workload design.', FREE),
+      link('https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-workloads-on-aws.html',
+        'Disaster Recovery Workloads on AWS (Whitepaper)',
+        'The definitive DR guide: RPO/RTO definitions, Backup/Restore, Pilot Light, Warm Standby, Multi-Site active-active. Know every strategy cold.', FREE),
+    ])}
+
+    <!-- MULTI-ACCOUNT & NETWORKING -->
+    ${section('Multi-Account & Networking — Domain 1 (26%)', '🌐', 'text-green-400', 'border-green-700', [
+      link('https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html',
+        'AWS Organizations User Guide',
+        'SCPs, OUs, consolidated billing, delegated administrator. Understand the difference between SCPs restricting vs IAM granting. Key exam trap area.', FREE),
+      link('https://docs.aws.amazon.com/controltower/latest/userguide/what-is-control-tower.html',
+        'AWS Control Tower User Guide',
+        'Landing zones, Account Factory, preventive vs detective guardrails. Know Hybrid Access Mode and when to use Control Tower vs manual Organizations setup.', FREE),
+      link('https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html',
+        'AWS Transit Gateway Guide',
+        'Hub-and-spoke networking, route tables, inter-region peering, ECMP. Replaces complex VPC peering meshes. Understand route table associations for segmentation.', FREE),
+      link('https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html',
+        'AWS Direct Connect User Guide',
+        'VIF types (Private/Public/Transit), LAG, DX Gateway, MACsec encryption, resiliency models. Know dedicated vs hosted and which VIF connects to what.', FREE),
+      link('https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html',
+        'Amazon VPC User Guide',
+        'Subnets, route tables, NACLs (stateless), Security Groups (stateful), VPC peering (non-transitive), VPC sharing via RAM. Critical fundamentals.', FREE),
+      link('https://docs.aws.amazon.com/vpc/latest/privatelink/what-is-privatelink.html',
+        'AWS PrivateLink & VPC Endpoints',
+        'Gateway endpoints (S3/DynamoDB only, free) vs Interface endpoints (all others, cost). Endpoint policies for data perimeter. Cross-account service exposure.', FREE),
+      link('https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html',
+        'IAM Identity Center (SSO) User Guide',
+        'Centralized access across accounts, permission sets, AD integration, attribute-based access. Modern replacement for per-account IAM user management.', FREE),
+      link('https://aws.amazon.com/answers/networking/aws-multiple-account-security-strategy/',
+        'AWS Multiple Account Security Strategy',
+        'AWS-recommended multi-account architecture patterns. Outlines Security OU, Workloads OU, log archive, and audit account purposes.', FREE),
+    ])}
+
+    <!-- COMPUTE & SERVERLESS -->
+    ${section('Compute, Serverless & Containers — Domain 2 (29%)', '⚡', 'text-yellow-400', 'border-yellow-700', [
+      link('https://docs.aws.amazon.com/lambda/latest/dg/welcome.html',
+        'AWS Lambda Developer Guide',
+        'Limits (15min, 10GB), VPC config, concurrency, event source mappings, Provisioned Concurrency. Know when Lambda is the WRONG answer (>15min workloads).', FREE),
+      link('https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html',
+        'AWS Step Functions Developer Guide',
+        'Standard (exactly-once, 1yr) vs Express (at-least-once, 5min). Retry/Catch, Map state, task token pattern for human approval. Saga pattern for distributed transactions.', FREE),
+      link('https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html',
+        'Amazon ECS Developer Guide',
+        'EC2 vs Fargate launch types, service auto-scaling, blue/green with CodeDeploy, task IAM roles. Know when to use ECS vs EKS.', FREE),
+      link('https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html',
+        'Amazon EKS User Guide',
+        'Managed node groups, Fargate profiles, IRSA (IAM Roles for Service Accounts), cluster add-ons. Choose EKS for K8s ecosystem/portability needs.', FREE),
+      link('https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html',
+        'Amazon API Gateway Developer Guide',
+        'REST vs HTTP vs WebSocket APIs, caching, throttling, custom authorizers, request validation. 29-second timeout limit is a key exam trap.', FREE),
+      link('https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html',
+        'Amazon CloudFront Developer Guide',
+        'Cache behaviors, origin groups, Lambda@Edge, field-level encryption, signed URLs. Understand CloudFront vs Global Accelerator distinction.', FREE),
+      link('https://aws.amazon.com/solutions/guidance/serverless-event-driven-architecture-on-aws/',
+        'Serverless Event-Driven Architecture Guidance',
+        'AWS Guidance document for event-driven patterns using Lambda, EventBridge, SQS, SNS. Shows real architecture diagrams.', FREE),
+    ])}
+
+    <!-- DATABASES -->
+    ${section('Databases & Storage — Domain 2 continued', '🗄️', 'text-purple-400', 'border-purple-700', [
+      link('https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html',
+        'Amazon Aurora User Guide',
+        'Global Database (1s RPO, <1min RTO), Serverless v2, up to 15 read replicas, <30s failover. Aurora vs RDS: choose Aurora for high availability and throughput.', FREE),
+      link('https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html',
+        'Amazon DynamoDB Developer Guide',
+        'Capacity units (1WCU=1KB, 1RCU=4KB), GSI vs LSI, Global Tables, DAX, Streams, PITR. On-demand vs provisioned cost tradeoffs.', FREE),
+      link('https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html',
+        'Amazon S3 User Guide',
+        'Storage classes and lifecycle policies, Object Lock (WORM), Replication, Access Points, Event Notifications. S3 is in every architecture.', FREE),
+      link('https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html',
+        'Amazon EFS User Guide',
+        'Shared NFS file storage, performance modes, throughput modes (Elastic/Provisioned/Bursting). EFS vs FSx for different OS and protocol requirements.', FREE),
+      link('https://docs.aws.amazon.com/fsx/latest/WindowsGuide/what-is.html',
+        'Amazon FSx for Windows File Server',
+        'SMB protocol, AD integration, DFS namespaces. The only AWS service with full Windows-native file system semantics. Common in hybrid enterprise scenarios.', FREE),
+    ])}
+
+    <!-- SECURITY & IAM -->
+    ${section('Security, Identity & Compliance — High Exam Weight', '🔐', 'text-red-400', 'border-red-700', [
+      link('https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html',
+        'AWS IAM User Guide',
+        'Policy evaluation logic (Explicit Deny > Allow > Implicit Deny), condition keys, permission boundaries, cross-account access patterns. Master the evaluation order.', FREE),
+      link('https://docs.aws.amazon.com/kms/latest/developerguide/overview.html',
+        'AWS KMS Developer Guide',
+        'Envelope encryption, CMKs vs AWS-managed keys, key rotation (old material retained), multi-region keys, grants for temporary access.', FREE),
+      link('https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html',
+        'Amazon GuardDuty User Guide',
+        'ML-based threat detection (CloudTrail + VPC Flow + DNS). Organizations integration, findings to EventBridge. GuardDuty detects but does NOT block.', FREE),
+      link('https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html',
+        'AWS Security Hub User Guide',
+        'Aggregates findings from GuardDuty, Inspector, Macie, Config. CIS/PCI compliance scoring. Understand that Security Hub aggregates, it does not scan.', FREE),
+      link('https://docs.aws.amazon.com/config/latest/developerguide/WhatIsConfig.html',
+        'AWS Config Developer Guide',
+        'Resource compliance rules, remediation via SSM Automation, conformance packs. Config detects (detective); SCPs prevent (preventive). Know the difference.', FREE),
+      link('https://docs.aws.amazon.com/waf/latest/developerguide/waf-chapter.html',
+        'AWS WAF Developer Guide',
+        'Web ACLs, managed rule groups, rate-based rules. WAF vs Shield vs Security Groups layer. WAF for Layer 7; Shield for DDoS (Layer 3/4).', FREE),
+      link('https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html',
+        'Amazon EC2 Security Groups',
+        'Stateful rules, inbound/outbound, chaining between services. Compared with NACLs (stateless, subnet-level). Both tested on SAP in network design questions.', FREE),
+    ])}
+
+    <!-- MIGRATION -->
+    ${section('Migration & Modernization — Domain 4 (20%)', '🚀', 'text-orange-400', 'border-orange-700', [
+      link('https://docs.aws.amazon.com/mgn/latest/ug/what-is-application-migration-service.html',
+        'AWS Application Migration Service (MGN)',
+        'Lift-and-shift with continuous replication. Test instances before cutover. Replaces deprecated SMS. Key for "minimize downtime" server migration scenarios.', FREE),
+      link('https://docs.aws.amazon.com/dms/latest/userguide/Welcome.html',
+        'AWS Database Migration Service (DMS)',
+        'Full Load + CDC for minimal downtime. SCT for heterogeneous migrations (Oracle to PostgreSQL). Replication instance sizing and LOB column handling.', FREE),
+      link('https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html',
+        'AWS DataSync User Guide',
+        'High-speed online data transfer with scheduling, bandwidth throttling, and integrity verification. NFS/SMB/S3/EFS/FSx support. DataSync vs Snow Family decision.', FREE),
+      link('https://docs.aws.amazon.com/snowball/latest/developer-guide/whatissnowball.html',
+        'AWS Snow Family Developer Guide',
+        'Snowcone (14TB), Snowball Edge (80TB), Snowmobile (100PB). Use when network transfer would take >1 week. Offline transfer for massive datasets.', FREE),
+      link('https://docs.aws.amazon.com/migrationhub/latest/ug/whatishub.html',
+        'AWS Migration Hub User Guide',
+        'Centralized tracking of server and database migrations. Application Discovery Service for dependency mapping. Migration Hub does NOT perform migration — it tracks it.', FREE),
+      link('https://docs.aws.amazon.com/whitepapers/latest/aws-migration-whitepaper/welcome.html',
+        'Migrating to AWS: Best Practices & Strategies',
+        'The 7 Rs migration framework (Retire, Retain, Relocate, Rehost, Replatform, Refactor, Repurchase). Migration phases, tooling decisions, and risk mitigation.', FREE),
+    ])}
+
+    <!-- MONITORING & OPERATIONS -->
+    ${section('Monitoring, Operations & DevOps', '📊', 'text-cyan-400', 'border-cyan-700', [
+      link('https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/WhatIsCloudWatch.html',
+        'Amazon CloudWatch User Guide',
+        'Metrics, alarms (static + anomaly detection), Logs Insights queries, dashboards, Container Insights, Synthetics canaries. CloudWatch is in every ops question.', FREE),
+      link('https://docs.aws.amazon.com/xray/latest/devguide/aws-xray.html',
+        'AWS X-Ray Developer Guide',
+        'Distributed tracing for microservices, service maps, sampling rules. Identifies latency bottlenecks across Lambda, API Gateway, ECS, EC2. The observability traces pillar.', FREE),
+      link('https://docs.aws.amazon.com/systems-manager/latest/userguide/what-is-systems-manager.html',
+        'AWS Systems Manager User Guide',
+        'Patch Manager, Parameter Store (free vs advanced), Session Manager, Run Command, Automation documents. Operational excellence tooling.', FREE),
+      link('https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html',
+        'AWS CloudFormation User Guide',
+        'StackSets for multi-account deployment, drift detection, change sets, cfn-init. Infrastructure as Code is heavily tested in operational excellence questions.', FREE),
+      link('https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome.html',
+        'AWS CodePipeline User Guide',
+        'CI/CD orchestration with CodeBuild, CodeDeploy. Blue/green deployments, approval actions, cross-account pipelines. DevOps modernization pattern.', FREE),
+    ])}
+
+    <!-- EXAM TIPS BOX -->
+    <div class="bg-surface-2 border border-gray-700 rounded-2xl p-5 mt-4">
+      <h3 class="font-bold text-white mb-3 flex items-center gap-2"><span class="text-lg">💡</span> How to Use These Docs Effectively</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-300">
+        <div class="flex items-start gap-2"><span class="text-aws-orange mt-0.5">1.</span><span><b class="text-white">Read the "What is..." page first</b> — the overview section explains the service purpose in 2 minutes.</span></div>
+        <div class="flex items-start gap-2"><span class="text-aws-orange mt-0.5">2.</span><span><b class="text-white">Focus on "How it works" diagrams</b> — SAP questions are architecture diagrams in text form.</span></div>
+        <div class="flex items-start gap-2"><span class="text-aws-orange mt-0.5">3.</span><span><b class="text-white">Read FAQs for each service</b> — exam questions often come directly from FAQ content.</span></div>
+        <div class="flex items-start gap-2"><span class="text-aws-orange mt-0.5">4.</span><span><b class="text-white">Note service limits and quotas</b> — numbers like "15 read replicas" and "50 Gbps TGW" are tested.</span></div>
+        <div class="flex items-start gap-2"><span class="text-aws-orange mt-0.5">5.</span><span><b class="text-white">Skip API reference pages</b> — SAP does not test API parameter syntax.</span></div>
+        <div class="flex items-start gap-2"><span class="text-aws-orange mt-0.5">6.</span><span><b class="text-white">Read the Well-Architected whitepapers last</b> — they tie everything together into patterns.</span></div>
+      </div>
+      <div class="mt-4 p-3 bg-aws-orange/10 border border-orange-800/50 rounded-xl text-xs text-gray-300">
+        <span class="text-aws-orange font-bold">⏱ Estimated reading time:</span> With this practice exam (220 questions) + these docs, expect 40–60 hours total study. Prioritize the <span class="text-white font-semibold">Exam Guide, Well-Architected Framework, DR Whitepaper, Organizations, Transit Gateway, and IAM</span> — these alone cover ~50% of exam questions.
+      </div>
+    </div>
+
   </div>`;
 }
 
@@ -816,6 +1062,7 @@ showPage('exam');
 renderLanding();
 buildReview();
 renderStats();
+buildDocs();
 </script>
 </body>
 </html>
