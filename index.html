@@ -108,6 +108,7 @@ function showPage(name) {
   const tab = document.getElementById('tab-' + name);
   tab.classList.add('border-aws-orange','text-white');
   tab.classList.remove('border-transparent','text-gray-400');
+  if (name === 'stats') renderStats();
 }
 
 let assistantOpen = false;
@@ -228,6 +229,7 @@ function recordAnswer(question, isCorrect) {
   userStats.totalAnswered++;
   if (isCorrect) userStats.totalCorrect++;
   const d = question.domain;
+  if (!userStats.domainScores[d]) userStats.domainScores[d] = [0, 0];
   userStats.domainScores[d][1]++;
   if (isCorrect) userStats.domainScores[d][0]++;
   if (!isCorrect) {
